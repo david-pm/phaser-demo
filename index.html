@@ -1,0 +1,145 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+<meta charset="UTF-8" />
+<title>Phaser</title>
+<script src="phaser.min.js"></script>
+<style type="text/css">
+  body { margin: 0; font-family: monospace; }
+  h1 { text-align: center; }
+  .container { width: 800px; margin: auto; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Your Mom</h1>
+  <div id='jumper'></div>
+</div>
+<script type="text/javascript">
+  let score = 0;
+  let platforms, player, cursors, stars, scoreText, resetGame, spacebar, background;
+  let gameObj = { preload: preload, create: create, update: update };
+  let width = 800, height = 600;
+  let game = new Phaser.Game(width, height, Phaser.AUTO, 'jumper', gameObj);
+
+  function preload() {
+    game.load.image('sky', 'assets/bkg.jpg');
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.spritesheet('dude', 'assets/dude.png', 32, 48); 
+  }
+
+  function create() {
+    // enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+    //game.add.sprite(0, 0, 'sky');
+    background = game.add.tileSprite(0, 0, 800, 800, 'sky');
+    // the platforms group contains the ground and the 2 ledges we can jump on
+    platforms = game.add.group();
+    // enable physics for any object that is created in this group
+    platforms.enableBody = true;
+
+    // create ground
+    let ground = platforms.create(0, game.world.height - 64, 'ground');
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    ground.scale.setTo(2, 2);
+    //  This stops it from falling away when you jump on it
+    ground.body.immovable = true;
+
+    // create two ledges
+    var ledge = platforms.create(400, 400, 'ground');
+    ledge.body.immovable = true;
+    ledge = platforms.create(-150, 250, 'ground');
+    ledge.body.immovable = true;
+
+    // init the player and its settings
+    player = game.add.sprite(32, game.world.height - 150, 'dude');
+    // for every sprite or Group that we wish to use physics on we enable them
+    game.physics.arcade.enable(player);
+    // player physics properties; give the little guy a slight bounce
+    player.body.bounce.y = 0.2;
+    player.body.gravity.y = 300;
+    player.body.collideWorldBounds = true;
+    // two animations, walking left and right
+    // the 'left' animation uses frames 0, 1, 2 and 3 and runs at 10 frames per second
+    // the 'true' parameter tells the animation to loop
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+    // some stars to collect
+    stars = game.add.group();
+    // enable physics
+    stars.enableBody = true;
+
+    //  create 12 stars evenly spaced apart
+    for (var i = 0; i < 12; i++) {
+      // create a star inside of the 'stars' group
+      var star = stars.create(i * 70, 0, 'star');
+      // gravity matches player's gravity setting
+      star.body.gravity.y = 300;
+      // gives each star a slightly random bounce value
+      star.body.bounce.y = 0.7 + Math.random() * 0.2;
+    }
+
+    // the score
+    scoreText = game.add.text(16, 16, 'score: 0', { font: '32px monospace', fill: '#fff' });
+
+    // controls - arrow keys
+    cursors = game.input.keyboard.createCursorKeys();
+  }
+
+  function update() {
+    // slowly scroll bg
+    background.tilePosition.x -= 0.5;
+
+    // collide the player and the stars with the platforms
+    game.physics.arcade.collide(player, platforms);
+    game.physics.arcade.collide(stars, platforms);
+
+    // checks if player overlaps with any of the stars, if he does call the collectStar function
+    game.physics.arcade.overlap(player, stars, collectStar, null, this);
+
+    // reset the players velocity (movement)
+    player.body.velocity.x = 0;
+
+    if (cursors.left.isDown) {
+      player.body.velocity.x = -150;
+      player.animations.play('left');
+    } else if (cursors.right.isDown) {
+      player.body.velocity.x = 150;
+      player.animations.play('right');
+    } else { //  Stand still
+      player.animations.stop();
+      player.frame = 4;
+    }
+    //  allow the player to jump if they are touching the ground.
+    if (cursors.up.isDown && player.body.touching.down) {
+      player.body.velocity.y = -300;
+    }
+    // check if all stars are collected
+    if (score >= 12) { reset(); }
+    // if the reset() function sets these conditions only if all stars
+    // have been collected so we can restart the game
+    if (resetGame && spacebar.isDown) { create(); }
+  }
+
+  // sets game state and display text so that we can restart the game
+  function reset() {
+    spacebar = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    let labelText = 'Score: '+score+'\nGAME OVER\nPress SPACE to restart'
+    let label = game.add.text(width/2 , height/2, labelText, { font: '32px monospace', fill: '#fff', align: 'center'});
+    label.anchor.setTo(0.5, 0.5);
+    score = 0;
+    resetGame = true;
+  }
+
+  function collectStar(player, star) {
+    // rm star
+    star.kill();
+    // add and update the score
+    score += 1;
+    scoreText.text = 'Score: ' + score;
+  }
+</script>
+</body>
+</html>
