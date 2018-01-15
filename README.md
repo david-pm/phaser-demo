@@ -6,3 +6,5 @@ and restart functionality
 clone the repos
 start a webserver (you need a webserver for this to work)
 play the game
+
+![alt text](https://raw.githubusercontent.com/david-pm/phaser-demo/master/QgTKfvztNI.gif)
